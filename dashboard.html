@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Library Management System v2.0</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<!-- EDIT MODAL -->
+<div id="editModal" class="modal-overlay">
+    <div class="modal-box">
+        <h2>✏️ Edit Book</h2>
+        <input type="hidden" id="editOriginalId">
+        <label>Book ID</label>
+        <input type="text" id="editBookId" disabled>
+        <label>Title</label>
+        <input type="text" id="editBookTitle" placeholder="Book Title">
+        <label>Author</label>
+        <input type="text" id="editBookAuthor" placeholder="Author Name">
+        <label>Genre</label>
+        <input type="text" id="editBookGenre" placeholder="e.g. Fiction, Science, History">
+        <div class="modal-actions">
+            <button class="btn-save" onclick="saveEditBook()">💾 Save Changes</button>
+            <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <h2 class="logo">📚 Library</h2>
+        <button onclick="showSection('dashboard')">🏠 Dashboard</button>
+        <button onclick="showSection('books')">📖 Books</button>
+        <button onclick="showSection('queue')">⏳ Waiting List</button>
+        <button onclick="showSection('stack')">📦 Returned</button>
+        <div class="sidebar-footer">
+            <button class="btn-overdue-check" onclick="checkAllOverdue()">🚨 Check Overdue</button>
+        </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="content">
+
+        <!-- GLOBAL BOOK SEARCH (Google Books API) -->
+        <div class="global-search-bar">
+            <div class="global-search-inner">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="globalSearchInput" placeholder="Search any book from the internet... (title, author, ISBN)" onkeydown="if(event.key==='Enter') globalSearchBooks()">
+                <button onclick="globalSearchBooks()" id="globalSearchBtn">Search</button>
+            </div>
+        </div>
+
+        <!-- GLOBAL SEARCH RESULTS PANEL -->
+        <div id="globalSearchResults" class="global-results-panel" style="display:none;">
+            <div class="results-header">
+                <span id="resultsTitle">Search Results</span>
+                <button class="close-results" onclick="closeGlobalSearch()">✕ Close</button>
+            </div>
+            <div id="resultsGrid" class="results-grid"></div>
+        </div>
+
+        <!-- STATS (5 cards now) -->
+        <div class="stats">
+            <div class="stat-card blue">
+                <div class="stat-icon">📚</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="totalBooks">0</span>
+                    <span class="stat-label">Total Books</span>
+                </div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-icon">✅</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="availableBooks">0</span>
+                    <span class="stat-label">Available</span>
+                </div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-icon">📕</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="borrowedBooks">0</span>
+                    <span class="stat-label">Borrowed</span>
+                </div>
+            </div>
+            <div class="stat-card yellow">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="waitingCount">0</span>
+                    <span class="stat-label">Waiting</span>
+                </div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-icon">🚨</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="overdueBooks">0</span>
+                    <span class="stat-label">Overdue</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div class="section" id="dashboard">
+            <div class="section-grid">
+                <!-- Add Book -->
+                <div class="form-card">
+                    <h2>📥 Add New Book</h2>
+                    <div class="form-row">
+                        <input type="text" id="bookId" placeholder="Book ID (e.g. BK001)">
+                        <input type="text" id="bookTitle" placeholder="Book Title">
+                    </div>
+                    <div class="form-row">
+                        <input type="text" id="bookAuthor" placeholder="Author Name">
+                        <input type="text" id="bookGenre" placeholder="Genre (e.g. Fiction)">
+                    </div>
+                    <div class="form-row">
+                        <button onclick="addBook()">➕ Add Book</button>
+                        <button onclick="searchBook()">🔍 Search by ID</button>
+                    </div>
+                </div>
+
+                <!-- Borrow / Return -->
+                <div class="form-card">
+                    <h2>📋 Borrow / Return</h2>
+                    <div class="form-row">
+                        <input type="text" id="borrowId" placeholder="Book ID">
+                        <input type="text" id="userName" placeholder="Borrower Name">
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label class="input-label">📅 Due Date</label>
+                            <input type="date" id="dueDate">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <button onclick="borrowBook()">📤 Borrow</button>
+                        <button onclick="returnBook()">📥 Return</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOOKS -->
+        <div class="section" id="books">
+            <h2>📖 Book List</h2>
+            <div class="search-bar">
+                <input type="text" id="searchBookInput" placeholder="Search by title, ID, or author..." oninput="filterBooks()">
+                <select id="genreFilter" onchange="filterBooks()">
+                    <option value="">All Genres</option>
+                    <option value="fiction">Fiction</option>
+                    <option value="non-fiction">Non-Fiction</option>
+                    <option value="science">Science</option>
+                    <option value="history">History</option>
+                    <option value="technology">Technology</option>
+                    <option value="biography">Biography</option>
+                    <option value="fantasy">Fantasy</option>
+                    <option value="mystery">Mystery</option>
+                    <option value="romance">Romance</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <button onclick="displayBooks()">View All Books</button>
+            <ul id="bookList"></ul>
+        </div>
+
+        <!-- QUEUE -->
+        <div class="section" id="queue">
+            <h2>⏳ Waiting List (Queue)</h2>
+            <div class="search-bar">
+                <input type="text" id="searchQueueInput" placeholder="Search by book or borrower..." oninput="filterQueue()">
+            </div>
+            <button onclick="displayQueue()">View Waiting List</button>
+            <ul id="queueList"></ul>
+        </div>
+
+        <!-- STACK -->
+        <div class="section" id="stack">
+            <h2>📦 Recently Returned Books (Stack)</h2>
+            <div class="search-bar">
+                <input type="text" id="searchStackInput" placeholder="Search returned books..." oninput="filterStack()">
+            </div>
+            <button onclick="displayStack()">View Returned Books</button>
+            <ul id="stackList"></ul>
+        </div>
+
+    </main>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
